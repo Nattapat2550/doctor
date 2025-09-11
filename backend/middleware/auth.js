@@ -1,8 +1,15 @@
 export const authMiddleware = (req, res, next) => {
-  const user = req.cookies.user;
-  if (!user) {
-    return res.status(401).json({ error: "Unauthorized. No user cookie found." });
+  let userId = req.cookies.userId;
+
+  if (!userId) {
+    userId = Date.now() + "-" + Math.floor(Math.random() * 10000);
+    res.cookie("userId", userId, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
   }
-  req.user = user;
+
+  req.userId = userId;
   next();
 };
