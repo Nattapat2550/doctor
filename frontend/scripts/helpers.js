@@ -15,22 +15,31 @@ export function formatStructuredText(text) {
     }
 
     let content = line.trim();
+
+    // Replace bold text with color
     content = content.replace(/\*\*(.*?)\*\*/g, (match, p1) => {
       const color = boldColors[colorIndex % boldColors.length];
       colorIndex++;
       return `<strong style="color:${color}">${p1}</strong>`;
     });
 
-    if (line.startsWith("*")) {
+    if (line.startsWith("###")) {
+      // Subheader
+      const clean = content.replace(/^###\s*/, "");
+      html += `<div class="subheader">${clean}</div>`;
+    } else if (line.startsWith("*")) {
+      // Subtopic
       const clean = content.replace(/^\*\s*/, "");
       html += `<div class="subtopic">• ${clean}</div>`;
     } else {
+      // Main topic
       html += `<div class="maintopic">${content}</div>`;
     }
   });
 
   return html;
 }
+
 
 export function copyText(txt) {
   navigator.clipboard.writeText(txt);

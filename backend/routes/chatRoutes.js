@@ -25,6 +25,7 @@ router.get("/:channelId", authMiddleware, async (req, res) => {
 });
 
 // POST new chat
+// POST new chat
 router.post("/:channelId", authMiddleware, async (req, res) => {
   try {
     const { channelId } = req.params;
@@ -32,14 +33,24 @@ router.post("/:channelId", authMiddleware, async (req, res) => {
     const { text, imageUrl } = req.body;
 
     // บันทึกข้อความ user
-    const userChat = new Chat({ channelId, userId, role: "user", text, imageUrl });
+    const userChat = new Chat({ channelId, userId, role: "user", text, imageUrl: imageUrl || null });
     await userChat.save();
 
-    const restrictedPrompt = `
-You are a supportive guidance counselor.
-Respond empathetically and practically to the user's question.
+    // สร้าง prompt สำหรับ Gemini API
+    let restrictedPrompt = `
+You are a psychiatrist in the style of Sigmund Freud. 
+Your role is to deeply understand the emotions, thoughts, and feelings of the patient.
+Respond as a real psychiatrist would, showing empathy, insight, and careful observation.
+Avoid sounding like AI. Speak naturally, as if you are having a conversation with a real patient.
+Analyze both the explicit and implicit aspects of what the patient expresses.
+Provide guidance, coping strategies, and advice based on psychiatric principles to help the patient in the most practical and beneficial way.
 User asked: "${text}"
 `;
+
+    // ถ้ามีรูป ให้ต่อ URL ของรูปเข้าไป
+    if (imageUrl) {
+      restrictedPrompt += `\nThe user also provided an image: ${imageUrl}`;
+    }
 
     let assistantText = "";
     try {
@@ -59,5 +70,6 @@ User asked: "${text}"
     res.status(500).json({ error: "Failed to post chat" });
   }
 });
+
 
 export default router;
