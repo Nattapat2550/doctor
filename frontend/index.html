@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mental Health Chatbot</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="icon" href="image/icon.png" type="image/x-icon"/>
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <h2>Chat Rooms</h2>
+      <ul id="channelList"></ul>
+      <input type="text" id="newChannelName" placeholder="New room name"/>
+      <img src="image/add.png" alt="Add" class="add-icon" onclick="createChannel()" width="40" height="40"/>
+    </div>
+
+    <!-- Chat panel -->
+    <div class="chat-panel">
+      <div class="chat-header">
+        <h3 id="currentChannelName">Select a room</h3>
+        <button onclick="renameChannel()">✏️ Rename</button>
+        <button onclick="deleteChannel()">🗑️ Delete</button>
+      </div>
+
+      <div class="chat-box" id="chatBox"></div>
+      <div id="imagePreview" class="image-preview"></div>
+
+      <div class="chat-input">
+        <textarea id="chatText" placeholder="Type a message..."></textarea>
+        <input type="file" id="chatImage" accept="image/*" style="display:none" onchange="previewImage(event)"/>
+        <img src="image/image.png" alt="IMG" class="addimage" onclick="document.getElementById('chatImage').click()" width="40" height="40"/>
+        <img src="image/sent.png" alt="Send" class="send-icon" onclick="sendChat()" width="40" height="40"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Image Modal -->
+  <div id="imageModal" onclick="closeImageModal()">
+    <img id="modalImage" src="" alt="Fullscreen Image"/>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="scripts/init.js"></script>
+</body>
+</html>
