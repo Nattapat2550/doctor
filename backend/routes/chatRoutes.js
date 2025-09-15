@@ -27,7 +27,7 @@ function detectLanguage(text) {
   return /[\u0E00-\u0E7F]/.test(text) ? "thai" : "english";
 }
 
-// Helper: build persona instruction (English, natural tone)
+// Helper: build persona instruction
 function buildPersona({ profile = {} }) {
   const tone =
     profile.age && profile.age < 25
@@ -35,12 +35,12 @@ function buildPersona({ profile = {} }) {
       : "warm, empathetic, and understanding tone";
 
   return [
-    "You are a psychotherapist in the style of Sigmund Freud, but speak naturally as if you are really listening.",
-    "Reflect the user's feelings briefly, ask open-ended questions to encourage them to share more.",
-    "Reply in 2-5 short sentences, naturally, not overly analytical or formal.",
+    "You are a psychotherapist in the style of Sigmund Freud, speak naturally, and listen carefully.",
+    "Reflect the user's feelings, ask open-ended questions to encourage sharing.",
+    "Respond in short natural sentences (2–5 sentences if appropriate, but adjust to the situation).",
     "Avoid sensitive or violent topics unless directly relevant.",
     `Use a ${tone}.`,
-    "Respond continuously to previous messages, focusing only on listening to the user's feelings."
+    "Focus on the user's feelings and context from previous messages."
   ].join(" ");
 }
 
@@ -52,16 +52,13 @@ router.get("/:channelId", authMiddleware, async (req, res) => {
 
   let chats = await Chat.find({ channelId, userId }).sort({ createdAt: 1 });
 
-  // ไม่มี chat → แสดง greeting default ทันที
   if (chats.length === 0) {
     const defaultGreeting = "Hi, I'm here to listen. Would you like to start by sharing what's on your mind?";
     const greetingChat = new Chat({ channelId, userId, role: "assistant", text: defaultGreeting });
     await greetingChat.save();
 
-    // ส่ง default greeting กลับทันที
     res.json([greetingChat]);
 
-    // เรียก AI generate greeting แบบ async ไม่บล็อก response
     (async () => {
       try {
         const persona = buildPersona({ profile });
@@ -69,7 +66,9 @@ router.get("/:channelId", authMiddleware, async (req, res) => {
           contents: [
             {
               role: "user",
-              parts: [{ text: `${persona}\nCreate a short, warm 1-2 sentence greeting for a new user.` }]
+              parts: [
+                { text: `${persona}\nCreate a short, warm greeting for a new user, flexible length (2–5 sentences if appropriate).` }
+              ]
             }
           ]
         });
@@ -89,7 +88,7 @@ router.get("/:channelId", authMiddleware, async (req, res) => {
   res.json(chats);
 });
 
-// POST new chat with context, summary, encouragement
+// POST new chat
 router.post("/:channelId", authMiddleware, async (req, res) => {
   try {
     const { channelId } = req.params;
@@ -97,17 +96,14 @@ router.post("/:channelId", authMiddleware, async (req, res) => {
     const { text, imageUrl } = req.body;
     const profile = req.user || {};
 
-    // --- Prevent duplicate message ---
     const lastChat = await Chat.findOne({ channelId, userId }).sort({ createdAt: -1 });
     if (lastChat && lastChat.role === "user" && lastChat.text === text) {
       return res.status(400).json({ error: "Duplicate message. Please wait for response." });
     }
 
-    // Save user message
     const userChat = new Chat({ channelId, userId, role: "user", text, imageUrl: imageUrl || null });
     await userChat.save();
 
-    // Get last 20 messages for context
     const history = await Chat.find({ channelId, userId }).sort({ createdAt: 1 }).limit(20);
     const promptParts = [];
 
@@ -125,12 +121,9 @@ router.post("/:channelId", authMiddleware, async (req, res) => {
       if (base64) promptParts.unshift({ inlineData: { mimeType: "image/jpeg", data: base64 } });
     }
 
-    // Detect user language
     const userLanguage = detectLanguage(text);
-
-    // Add instruction to summarize, encourage, and reply in same language
     promptParts.push({
-      text: `Summarize the main feelings and key points expressed by the user in 1-2 sentences, add short encouragement if needed, and reply in ${userLanguage === "thai" ? "Thai" : "English"}. Keep the tone friendly and natural.`
+      text: `Summarize the main feelings and key points expressed by the user, add encouragement if needed, and reply in ${userLanguage === "thai" ? "Thai" : "English"}. Adjust length flexibly (2–5 sentences if appropriate).`
     });
 
     let assistantText = "";
